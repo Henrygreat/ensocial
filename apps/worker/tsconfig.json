@@ -2,12 +2,12 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "../..",
     "paths": {
       "@ensocial/database": ["../../packages/database/src/index.ts"],
       "@ensocial/types": ["../../packages/types/src/index.ts"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../../packages/database/src/**/*", "../../packages/types/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
