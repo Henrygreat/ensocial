@@ -1,0 +1,393 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTHENTICATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  name          String?
+  image         String?
+  passwordHash  String?   @db.Text
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts         Account[]
+  sessions         Session[]
+  orgMembers       OrgMember[]
+  workspaceMembers WorkspaceMember[]
+  posts            Post[]
+  approvals        PostApproval[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refreshToken      String? @db.Text
+  accessToken       String? @db.Text
+  expiresAt         Int?
+  tokenType         String?
+  scope             String?
+  idToken           String? @db.Text
+  sessionState      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ORGANIZATIONS (Tenant root)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  description String?  @db.Text
+  website     String?
+  plan        Plan     @default(FREE)
+  timezone    String   @default("UTC")
+  language    String   @default("en")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members      OrgMember[]
+  workspaces   Workspace[]
+  subscription Subscription?
+  whiteLabel   WhiteLabel?
+
+  @@index([slug])
+  @@map("organizations")
+}
+
+enum Plan {
+  FREE
+  SOLO
+  PRO
+  AGENCY
+  ENTERPRISE
+}
+
+model OrgMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrgRole  @default(MEMBER)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("org_members")
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model WhiteLabel {
+  id             String  @id @default(cuid())
+  organizationId String  @unique
+  domain         String?
+  logo           String?
+  primaryColor   String?
+  companyName    String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("white_labels")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WORKSPACES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Workspace {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  description    String?
+  color          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        WorkspaceMember[]
+  socialAccounts SocialAccount[]
+  posts          Post[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(VIEWER)
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MANAGER
+  EDITOR
+  VIEWER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SOCIAL CONNECTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SocialAccount {
+  id              String         @id @default(cuid())
+  workspaceId     String
+  platform        SocialPlatform
+  platformId      String
+  name            String
+  username        String?
+  image           String?
+  accessToken     String         @db.Text
+  refreshToken    String?        @db.Text
+  tokenExpiresAt  DateTime?
+  followersCount  Int            @default(0)
+  followingCount  Int            @default(0)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  workspace        Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  postSocialAccounts PostSocialAccount[]
+  accountAnalytics   AccountAnalytics[]
+
+  @@unique([workspaceId, platform, platformId])
+  @@index([workspaceId])
+  @@map("social_accounts")
+}
+
+enum SocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+  TWITTER
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+  PINTEREST
+  THREADS
+  GOOGLE_BUSINESS
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTENT & PUBLISHING
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Post {
+  id           String     @id @default(cuid())
+  workspaceId  String
+  createdById  String
+  content      String     @db.Text
+  firstComment String?    @db.Text
+  mediaUrls    String[]
+  hashtags     String[]
+  linkUrl      String?
+  status       PostStatus @default(DRAFT)
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  aiGenerated  Boolean    @default(false)
+  aiPrompt     String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  workspace      Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      User               @relation(fields: [createdById], references: [id])
+  socialAccounts PostSocialAccount[]
+  approvals      PostApproval[]
+  analytics      PostAnalytics[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, scheduledAt])
+  @@index([createdById])
+  @@map("posts")
+}
+
+enum PostStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+model PostSocialAccount {
+  id              String     @id @default(cuid())
+  postId          String
+  socialAccountId String
+  status          PostStatus @default(SCHEDULED)
+  platformPostId  String?
+  publishedAt     DateTime?
+  error           String?
+
+  post          Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, socialAccountId])
+  @@index([postId])
+  @@map("post_social_accounts")
+}
+
+model PostApproval {
+  id         String         @id @default(cuid())
+  postId     String
+  approverId String
+  status     ApprovalStatus @default(PENDING)
+  comment    String?
+  createdAt  DateTime       @default(now())
+
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  approver User @relation(fields: [approverId], references: [id])
+
+  @@unique([postId, approverId])
+  @@index([postId])
+  @@map("post_approvals")
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYTICS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PostAnalytics {
+  id          String         @id @default(cuid())
+  postId      String
+  platform    SocialPlatform
+  impressions Int            @default(0)
+  reach       Int            @default(0)
+  engagements Int            @default(0)
+  likes       Int            @default(0)
+  comments    Int            @default(0)
+  shares      Int            @default(0)
+  clicks      Int            @default(0)
+  saves       Int            @default(0)
+  createdAt   DateTime       @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([createdAt])
+  @@map("post_analytics")
+}
+
+model AccountAnalytics {
+  id              String   @id @default(cuid())
+  socialAccountId String
+  date            DateTime
+  followersCount  Int      @default(0)
+  followingCount  Int      @default(0)
+  impressions     Int      @default(0)
+  reach           Int      @default(0)
+  engagements     Int      @default(0)
+
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([socialAccountId, date])
+  @@index([socialAccountId])
+  @@map("account_analytics")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BILLING
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  organizationId       String             @unique
+  stripeCustomerId     String             @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  plan                 Plan               @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+  INCOMPLETE
+}
