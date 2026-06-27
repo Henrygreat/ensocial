@@ -4,6 +4,7 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
