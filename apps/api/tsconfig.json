@@ -1,9 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "ESNext",
     "target": "ES2022",
     "outDir": "./dist",
+    "rootDir": "../..",
     "baseUrl": "./",
     "incremental": true,
     "emitDecoratorMetadata": true,
@@ -14,6 +15,11 @@
       "@ensocial/auth": ["../../packages/auth/src/index.ts"]
     }
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+    "../../packages/types/src/**/*",
+    "../../packages/database/src/**/*",
+    "../../packages/auth/src/**/*"
+  ],
   "exclude": ["node_modules", "dist"]
 }

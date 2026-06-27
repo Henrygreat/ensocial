@@ -20,7 +20,10 @@ export class PublishingService {
     private readonly redis: RedisService,
   ) {
     this.queue = new Queue(PUBLISHING_QUEUE, {
-      connection: redis,
+      connection: {
+    host: process.env.REDIS_HOST ?? 'redis',
+    port: Number(process.env.REDIS_PORT ?? 6379),
+  },
       defaultJobOptions: {
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },

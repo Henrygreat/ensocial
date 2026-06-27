@@ -2,6 +2,8 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "strict": true,
+    "strictPropertyInitialization": false,
+    "noImplicitAny": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "module": "ESNext",

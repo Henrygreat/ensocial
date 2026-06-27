@@ -12,7 +12,10 @@ export class AnalyticsService {
     private readonly db: DatabaseService,
     private readonly redis: RedisService,
   ) {
-    this.queue = new Queue('analytics', { connection: redis });
+    this.queue = new Queue('analytics', { connection: {
+    host: process.env.REDIS_HOST ?? 'redis',
+    port: Number(process.env.REDIS_PORT ?? 6379),
+  }, });
   }
 
   async getOverview(workspaceId: string, period: '7d' | '30d' | '90d' = '30d') {
