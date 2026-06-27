@@ -37,4 +37,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
   CMD wget -qO- http://localhost:3000/api/v1/health || exit 1
 
-CMD ["sh", "-c", "pnpm --filter=@ensocial/database db:push && node apps/api/dist/main.js"]
+CMD ["sh", "-c", "pnpm --filter=@ensocial/database db:push && node apps/api/dist/apps/api/src/main.js"]

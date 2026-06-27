@@ -12,10 +12,14 @@ export class AnalyticsService {
     private readonly db: DatabaseService,
     private readonly redis: RedisService,
   ) {
-    this.queue = new Queue('analytics', { connection: {
-    host: process.env.REDIS_HOST ?? 'redis',
-    port: Number(process.env.REDIS_PORT ?? 6379),
-  }, });
+    const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://redis:6379');
+    this.queue = new Queue('analytics', {
+      connection: {
+        host: redisUrl.hostname,
+        port: Number(redisUrl.port) || 6379,
+        password: redisUrl.password || undefined,
+      },
+    });
   }
 
   async getOverview(workspaceId: string, period: '7d' | '30d' | '90d' = '30d') {

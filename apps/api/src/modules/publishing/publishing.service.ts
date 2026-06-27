@@ -19,11 +19,13 @@ export class PublishingService {
     private readonly db: DatabaseService,
     private readonly redis: RedisService,
   ) {
+    const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://redis:6379');
     this.queue = new Queue(PUBLISHING_QUEUE, {
       connection: {
-    host: process.env.REDIS_HOST ?? 'redis',
-    port: Number(process.env.REDIS_PORT ?? 6379),
-  },
+        host: redisUrl.hostname,
+        port: Number(redisUrl.port) || 6379,
+        password: redisUrl.password || undefined,
+      },
       defaultJobOptions: {
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },

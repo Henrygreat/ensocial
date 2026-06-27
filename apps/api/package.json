@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build",
+    "build": "nest build && tsc-alias",
     "start": "node dist/main",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts"
@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
+    "tsc-alias": "^1.8.10",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/bcryptjs": "^2.4.6",
