@@ -18,7 +18,7 @@ COPY packages/database ./packages/database
 COPY packages/sdk ./packages/sdk
 COPY packages/types ./packages/types
 RUN pnpm --filter=@ensocial/database db:generate
-RUN pnpm --filter=@ensocial/api build
+RUN pnpm --filter=@ensocial/api build || (echo "API BUILD FAILED" && pnpm --filter=@ensocial/api build --verbose && exit 1)
 
 FROM node:22-alpine AS runner
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
