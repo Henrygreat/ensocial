@@ -1,14 +1,18 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "target": "ES2022",
     "outDir": "./dist",
     "rootDir": "../..",
     "baseUrl": "./",
-    "incremental": true,
+    "incremental": false,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
+    "noImplicitAny": false,
     "paths": {
       "@ensocial/types": ["../../packages/types/src/index.ts"],
       "@ensocial/database": ["../../packages/database/src/index.ts"],
