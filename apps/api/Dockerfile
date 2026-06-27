@@ -6,7 +6,7 @@ WORKDIR /app
 
 FROM base AS deps
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json nest-cli.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json ./
 
 COPY apps/api/package.json ./apps/api/package.json
 COPY packages/auth/package.json ./packages/auth/package.json
