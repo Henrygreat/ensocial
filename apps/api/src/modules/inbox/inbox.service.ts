@@ -18,7 +18,7 @@ export class InboxService {
 
     const accounts = await this.db.socialAccount.findMany({
       where: { workspaceId, isActive: true },
-      select: { id: true, platform: true, name: true, avatar: true },
+      select: { id: true, platform: true, name: true, image: true },
     });
 
     // Return account list with zero-state for now.

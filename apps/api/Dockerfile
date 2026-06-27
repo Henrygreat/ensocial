@@ -14,7 +14,7 @@ COPY packages/database/package.json ./packages/database/package.json
 COPY packages/sdk/package.json ./packages/sdk/package.json
 COPY packages/types/package.json ./packages/types/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 FROM deps AS builder
 
@@ -36,19 +36,32 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Workspace config
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=builder /app/node_modules ./node_modules
 
+# Package manifests (workspace resolution + prod dep install)
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder /app/packages/auth/package.json ./packages/auth/package.json
+COPY --from=builder /app/packages/database/package.json ./packages/database/package.json
+COPY --from=builder /app/packages/sdk/package.json ./packages/sdk/package.json
+COPY --from=builder /app/packages/types/package.json ./packages/types/package.json
+
+# Install prod dependencies — now includes prisma CLI (database dep) and
+# @prisma/client (api dep), giving Node the correct resolution symlinks
+RUN pnpm install --prod --no-frozen-lockfile
+
+# Compiled API
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
-COPY --from=builder /app/packages ./packages
+# Prisma schema — needed by `prisma db push` at startup
+COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
+
+# Pre-generated Prisma client into the path the compiled code resolves to:
+# apps/api/dist/packages/database/src/index.js → require('../generated/client')
+COPY --from=builder /app/packages/database/generated/client ./apps/api/dist/packages/database/generated/client
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-  CMD wget -qO- http://localhost:3000/api/v1/health || exit 1
-
-CMD ["sh", "-c", "pnpm install --no-frozen-lockfile && pnpm --filter=@ensocial/database db:push && node apps/api/dist/apps/api/src/main.js"]
-
+CMD ["sh", "-c", "pnpm --filter=@ensocial/database db:push && node apps/api/dist/apps/api/src/main.js"]
